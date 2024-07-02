@@ -1,78 +1,104 @@
-//package com.example.HNG_Stage_1.service;
-//
-//
-//import com.example.HNG_Stage_1.model.Visitor;
-//import com.maxmind.geoip2.DatabaseReader;
-//import com.maxmind.geoip2.exception.GeoIp2Exception;
-//import com.maxmind.geoip2.model.CityResponse;
-//import com.maxmind.geoip2.record.Country;
-//import jakarta.servlet.http.HttpServletRequest;
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.http.ResponseEntity;
-//import org.springframework.stereotype.Service;
-//
-//import java.io.File;
-//import java.io.IOException;
-//import java.net.InetAddress;
-//import static java.util.Objects.nonNull;
-//
-//
-//@Service
-//public class UserService{
-//
-//    private Visitor user;
-//
-//    public ResponseEntity<Visitor> greetings(String visitor_name, HttpServletRequest request)  {
-//        Visitor visitor = new Visitor();
-//        String clientIp = request.getRemoteAddr();
-////        String city = getIpLocation(clientIp);
-//        String temperature = request.getLocalName();
-//
-//        visitor.setClient_ip(clientIp);
-//        visitor.setLocation("Uyo");
-//        visitor.setGreeting("Hello, " + visitor_name + "! , " + "the temperature is " + temperature + " degrees Celsius in ");
-//
-//        user.setGreeting(visitor.getGreeting());
-//        user.setLocation(visitor.getLocation());
-//        user.setClient_ip(visitor.getClient_ip());
-//
-//        return ResponseEntity.ok(visitor);
-//    }
-//
-//    private String extractIp(HttpServletRequest request) {
-//        String clientIp;
-//        String clientXForwardedForIp = request.getHeader("x-forwarded-for");
-//        if (nonNull(clientXForwardedForIp)) {
-//            clientIp = parseXForwardedHeader(clientXForwardedForIp);
-//        } else {
-//            clientIp = request.getRemoteAddr();
-//        }
-//        return clientIp;
-//    }
-//
-//    private String parseXForwardedHeader(String xForwardedHeader) {
-//        return xForwardedHeader.split(",")[0].trim();
-//    }
-//
-//    private String getIpLocation(String ip) throws IOException, GeoIp2Exception {
-//        File database = new File("src/main/resources/static/GeoLite2-City_20240628/GeoLite2-City.mmdb");
-//        DatabaseReader reader = new DatabaseReader.Builder(database).build();
-//
-////        InetAddress ipAddress = InetAddress.getByName(ip);
-////
-////        CityResponse response = null;
-////        try {
-////            response = reader.city(ipAddress);
-////        } catch (GeoIp2Exception e) {
-////            throw new RuntimeException(e);
-////        }
-////
-////        Country country = response.getCountry();
-////        System.out.println(country.getIsoCode());
-//        InetAddress ipAddress = InetAddress.getByName(ip);
-//        CityResponse response = reader.city(ipAddress);
-//        return response.getCity().getName();
-//    }
-//
-//
-//}
+package com.example.HNG_Stage_1.service;
+
+
+import com.example.HNG_Stage_1.model.Visitor;
+import com.example.HNG_Stage_1.model.WeatherData;
+import jakarta.servlet.http.HttpServletRequest;
+import org.json.JSONObject;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
+@Service
+public class UserService{
+    private static final String API_URL = "http://api.weatherapi.com/v1/current.json";
+    private static final String API_KEY = "e79b5861eab94b51a75214742240107";
+
+
+    public ResponseEntity<Visitor> greetings(String visitor_name, HttpServletRequest request)  {
+        String cleanVisitorName = removeSurroundingQuotes(visitor_name);
+        String clientIp = getClientIpAddress(request);
+        WeatherData weatherData = getWeatherData(clientIp);
+        String city = weatherData.getName();
+        double temp = weatherData.getTemperatureC();
+
+        Visitor visitor = new Visitor();
+        visitor.setClient_ip(clientIp);
+        visitor.setLocation(city);
+        visitor.setGreeting("Hello, " + cleanVisitorName + "! , " + "the temperature is " + temp + " degrees Celsius in " + city);
+
+        return ResponseEntity.ok(visitor);
+    }
+
+    private String removeSurroundingQuotes(String input) {
+        // Use regex to remove leading and trailing escaped quotes
+        Pattern pattern = Pattern.compile("^\"(.*)\"$");
+        Matcher matcher = pattern.matcher(input);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return input;
+    }
+
+    public static String getClientIpAddress(HttpServletRequest request) {
+        String xForwardedForHeader = request.getHeader("X-Forwarded-For");
+        if (xForwardedForHeader != null && !xForwardedForHeader.isEmpty()) {
+            return xForwardedForHeader.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+
+    public WeatherData getWeatherData(String ip) {
+        RestTemplate restTemplate = new RestTemplate();
+        String apiUrl = API_URL + "?key=" + API_KEY + "&q=" + ip + "&aqi=no";
+        String response = restTemplate.getForObject(apiUrl, String.class);
+
+        JSONObject jsonResponse = new JSONObject(response);
+        String locationName = jsonResponse.getJSONObject("location").getString("name");
+        double temperatureC = jsonResponse.getJSONObject("current").getDouble("temp_c");
+
+        return new WeatherData(locationName, temperatureC);
+    }
+
+
+    public String getPublicIpAddress() {
+        StringBuilder ipAddress = new StringBuilder();
+        try {
+            URL url = new URL("https://httpbin.org/ip");
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                ipAddress.append(line);
+            }
+
+            reader.close();
+            connection.disconnect();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Parse the JSON response to extract the public IP address using a JSON library
+        String response = ipAddress.toString();
+        JSONObject jsonResponse = new JSONObject(response);
+        String publicIp = jsonResponse.getString("origin");
+
+        // Remove any trailing backslash if present
+        publicIp = publicIp.endsWith("\\") ? publicIp.substring(0, publicIp.length() - 1) : publicIp;
+
+        return publicIp;
+    }
+
+}
