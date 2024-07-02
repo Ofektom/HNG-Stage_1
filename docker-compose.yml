@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  hng_stage_1_app:
+    image: hng_stage_1_app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    environment:
+      - API_KEY=e79b5861eab94b51a75214742240107
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge

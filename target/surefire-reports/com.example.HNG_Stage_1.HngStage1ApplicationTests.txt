@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.example.HNG_Stage_1.HngStage1ApplicationTests
 -------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.182 s -- in com.example.HNG_Stage_1.HngStage1ApplicationTests
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.155 s -- in com.example.HNG_Stage_1.HngStage1ApplicationTests

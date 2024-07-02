@@ -1,5 +1,6 @@
 /Users/decagon/Documents/HNG2/HNG-Stage_1/src/main/java/com/example/HNG_Stage_1/HngStage1Application.java
 /Users/decagon/Documents/HNG2/HNG-Stage_1/src/main/java/com/example/HNG_Stage_1/controller/ApiController.java
+/Users/decagon/Documents/HNG2/HNG-Stage_1/src/main/java/com/example/HNG_Stage_1/exception/GlobalExceptionHandler.java
 /Users/decagon/Documents/HNG2/HNG-Stage_1/src/main/java/com/example/HNG_Stage_1/model/Visitor.java
 /Users/decagon/Documents/HNG2/HNG-Stage_1/src/main/java/com/example/HNG_Stage_1/model/WeatherData.java
 /Users/decagon/Documents/HNG2/HNG-Stage_1/src/main/java/com/example/HNG_Stage_1/service/UserService.java
