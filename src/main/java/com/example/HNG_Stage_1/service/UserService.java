@@ -13,6 +13,7 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,24 +32,28 @@ import java.util.regex.Pattern;
 
 @Service
 public class UserService{
-    private static final String API_URL = "http://api.weatherapi.com/v1/current.json";
-    private static final String API_KEY = "e79b5861eab94b51a75214742240107";
-    private static final String IPINFO_API_URL = "https://ipinfo.io/";
-    private static final String IPINFO_TOKEN = "f442c0ec5b63bf";
+    @Value("${weather.api-url}")
+    private String API_URL;
+    @Value("${weather.api-key}")
+    private String API_KEY;
+    @Value("${ipinfo.api-url}")
+    private String IPINFO_API_URL;
+    @Value("${ipinfo.api-key}")
+    private String IPINFO_TOKEN;
 
 
     public ResponseEntity<Visitor> greetings(String visitor_name, HttpServletRequest request)  {
         String cleanVisitorName = removeSurroundingQuotes(visitor_name);
         String clientIp = getClientIpAddress(request);
 //        String clientIp = getPublicIpAddress();
-        String city = getCityFromIpinfo(clientIp);
+        String city = getCityFromIpInfo(clientIp);
         WeatherData weatherData = getWeatherData(city);
         double temp = weatherData.getTemperatureC();
 
         Visitor visitor = new Visitor();
         visitor.setClient_ip(clientIp);
         visitor.setLocation(city);
-        visitor.setGreeting("Hello, " + cleanVisitorName + "! , " + "the temperature is " + temp + " degrees Celsius in " + city);
+        visitor.setGreeting("Hello, " + cleanVisitorName + "!, " + "the temperature is " + temp + " degrees Celsius in " + city);
 
         return ResponseEntity.ok(visitor);
     }
@@ -88,7 +93,7 @@ public class UserService{
         return null;
     }
 
-    private String getCityFromIpinfo(String ipAddress) {
+    private String getCityFromIpInfo(String ipAddress) {
         String apiUrl = IPINFO_API_URL + ipAddress + "/json?token=" + IPINFO_TOKEN;
 
         // Use Apache HttpClient 5 to send HTTP GET request
@@ -139,4 +144,74 @@ public class UserService{
             throw e;
         }
     }
+
+    //    public WeatherData getWeatherData(String ip) {
+//        // Initialize WebClient
+//        WebClient webClient = WebClient.builder()
+//                .baseUrl(API_URL)
+//                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+//                .build();
+//
+//        // Construct the URI with query parameters
+//        String apiUrl = "?key=" + API_KEY + "&q=" + ip + "&aqi=no";
+//
+//        try {
+//            // Use WebClient to make the GET request
+//            String response = webClient.get()
+//                    .uri(apiUrl)
+//                    .retrieve()
+//                    .bodyToMono(String.class)
+//                    .block(); // Blocking to convert Mono to actual response (consider using non-blocking in real apps)
+//
+//            // Parse the JSON response
+//            JSONObject jsonResponse = new JSONObject(response);
+//            String locationName = jsonResponse.getJSONObject("location").getString("name");
+//            double temperatureC = jsonResponse.getJSONObject("current").getDouble("temp_c");
+//
+//            // Return the parsed data
+//            return new WeatherData(locationName, temperatureC);
+//
+//        } catch (WebClientResponseException e) {
+//            // Handle client errors (4xx) or server errors (5xx)
+//            System.err.println("WebClient Error: " + e.getStatusCode() + " " + e.getResponseBodyAsString());
+//            throw e;
+//        } catch (Exception e) {
+//            // Handle any other exceptions
+//            System.err.println("Error: " + e.getMessage());
+//            throw e;
+//        }
+//    }
+
+
+//    public String getPublicIpAddress() {
+//        StringBuilder ipAddress = new StringBuilder();
+//        try {
+//            URL url = new URL("https://httpbin.org/ip");
+//            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+//            connection.setRequestMethod("GET");
+//
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+//            String line;
+//            while ((line = reader.readLine()) != null) {
+//                ipAddress.append(line);
+//            }
+//
+//            reader.close();
+//            connection.disconnect();
+//
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//        // Parse the JSON response to extract the public IP address using a JSON library
+//        String response = ipAddress.toString();
+//        JSONObject jsonResponse = new JSONObject(response);
+//        String publicIp = jsonResponse.getString("origin");
+//
+//        // Remove any trailing backslash if present
+//        publicIp = publicIp.endsWith("\\") ? publicIp.substring(0, publicIp.length() - 1) : publicIp;
+//
+//        return publicIp;
+//    }
+
 }
